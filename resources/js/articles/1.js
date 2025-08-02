@@ -603,14 +603,16 @@ var draw_visualizations = function() {
       .attr('height', 20)
       .attr('fill', '#4CAF50')
       .attr('rx', 5)
-      .attr('cursor', 'pointer');
+      .attr('cursor', 'pointer')
+      .style('pointer-events', 'all'); // Ensure clicks are captured
     
-    sliderContainer.append('text')
+    const playButtonText = sliderContainer.append('text')
       .attr('x', 20)
       .attr('y', 75)
       .attr('text-anchor', 'middle')
       .style('font-size', '12px')
       .style('fill', 'white')
+      .attr('class', 'play-button-text')
       .text('Play');
     
     // Slider functionality
@@ -635,26 +637,33 @@ var draw_visualizations = function() {
     
     sliderHandle.call(drag);
     
-    // Play button functionality
-    playButton.on('click', function() {
-      if (isPlaying) {
-        // Stop playing
-        isPlaying = false;
-        clearInterval(playInterval);
-        playButton.attr('fill', '#4CAF50');
-        d3.select(this.parentNode).select('text').text('Play');
-      } else {
-        // Start playing
-        isPlaying = true;
-        playButton.attr('fill', '#f44336');
-        d3.select(this.parentNode).select('text').text('Stop');
-        
-        playInterval = setInterval(() => {
-          currentYearIndex = (currentYearIndex + 1) % yearRange.length;
-          updateSliderPosition();
-        }, 500); // Update every 500ms
-      }
-    });
+    // Play button functionality - try both click and mousedown events
+    playButton
+      .on('click', function(event) {
+        console.log('Play button clicked!'); // Debug log
+        event.stopPropagation(); // Prevent event bubbling
+        if (isPlaying) {
+          // Stop playing
+          isPlaying = false;
+          clearInterval(playInterval);
+          playButton.attr('fill', '#4CAF50');
+          playButtonText.text('Play');
+        } else {
+          // Start playing
+          isPlaying = true;
+          playButton.attr('fill', '#f44336');
+          playButtonText.text('Stop');
+          
+          playInterval = setInterval(() => {
+            currentYearIndex = (currentYearIndex + 1) % yearRange.length;
+            updateSliderPosition();
+          }, 500); // Update every 500ms
+        }
+      })
+      .on('mousedown', function(event) {
+        console.log('Play button mousedown!'); // Debug log
+        event.stopPropagation(); // Prevent event bubbling
+      });
     
     // Initialize with first year
     updateSliderPosition();
