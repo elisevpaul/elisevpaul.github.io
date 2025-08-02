@@ -393,34 +393,27 @@ var draw_visualizations = function() {
     const mapdata = await res.json()
    
     const data = await d3.csv("resources/datasets/" + dataset_map['traffic delay']);
-    // Set up the SVG
-    const margin = { top: 40, right: 30, bottom: 40, left: 60 };
-    const width = 800 - margin.left - margin.right;
-    const height = 400 - margin.top - margin.bottom;
-    
-    const svg = d3.select("#slide_3")
-      .append("svg")
-      .attr("width", width + margin.left + margin.right)
-      .attr("height", height + margin.top + margin.bottom)
-      .append("g")
-      //.attr("transform", `translate(${margin.left},${margin.top})`)
-      
-      ;
-      const projection = d3.geoIdentity()
-        .reflectY(false) // TopoJSON uses flipped Y-axis
-        .fitSize([width, height], topojson.feature(mapdata, mapdata.objects.states));
 
+    const svg = d3.select('#slide_3 svg')
+    .attr("width", 800)
+    .attr("height", 400)
+      ;
+  
+
+        const projection = d3.geoIdentity()
+        .reflectY(false) // TopoJSON uses flipped Y-axis
+        .fitSize([600, 400], topojson.feature(mapdata, mapdata.objects.states));
+        
+        
       const path = d3.geoPath(projection);
-      
-      // Create the US boundary
+
     const usa = svg
       .append('g')
       .append('path')
       .datum(topojson.feature(mapdata, mapdata.objects.nation))
       .attr('d', path)
+      ;
 
-    // Create the state boundaries. "stroke" and "fill" set the outline and fill
-    // colors, respectively.
     const state = svg
       .append('g')
       .attr('stroke', '#444')
@@ -429,7 +422,8 @@ var draw_visualizations = function() {
       .data(topojson.feature(mapdata, mapdata.objects.states).features)
       .join('path')
       .attr('vector-effect', 'non-scaling-stroke')
-      .attr('d', path);
+      .attr('d', path)
+      ;
       
     
     
