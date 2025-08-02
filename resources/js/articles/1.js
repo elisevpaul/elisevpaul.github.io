@@ -430,6 +430,20 @@ var draw_visualizations = function() {
     
     // Function to update the map for a specific year
     function updateMap(year) {
+      // State abbreviation to full name mapping
+      const stateAbbreviations = {
+        'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas', 'CA': 'California',
+        'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware', 'FL': 'Florida', 'GA': 'Georgia',
+        'HI': 'Hawaii', 'ID': 'Idaho', 'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa',
+        'KS': 'Kansas', 'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+        'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi', 'MO': 'Missouri',
+        'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada', 'NH': 'New Hampshire', 'NJ': 'New Jersey',
+        'NM': 'New Mexico', 'NY': 'New York', 'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio',
+        'OK': 'Oklahoma', 'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+        'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah', 'VT': 'Vermont',
+        'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia', 'WI': 'Wisconsin', 'WY': 'Wyoming'
+      };
+      
       // Debug: Log the first row to see column names
       if (data.length > 0) {
         console.log("First row keys:", Object.keys(data[0]));
@@ -449,10 +463,25 @@ var draw_visualizations = function() {
           };
         }
         
-        // Find matching urban areas for this state
-        const matchingAreas = data.filter(row => 
-          row['Urban area '] && row['Urban area '].toLowerCase().includes(state.properties.name.toLowerCase())
-        );
+        // Find matching urban areas for this state using both full name and abbreviations
+        const matchingAreas = data.filter(row => {
+          if (!row['Urban area ']) return false;
+          
+          const urbanArea = row['Urban area '].toLowerCase();
+          const stateName = state.properties.name.toLowerCase();
+          
+          // Check for full state name
+          if (urbanArea.includes(stateName)) return true;
+          
+          // Check for state abbreviation
+          for (const [abbr, fullName] of Object.entries(stateAbbreviations)) {
+            if (fullName.toLowerCase() === stateName && urbanArea.includes(abbr.toLowerCase())) {
+              return true;
+            }
+          }
+          
+          return false;
+        });
         
         // Debug: Log matching areas for first few states
         if (state.properties.name === 'California' || state.properties.name === 'Texas' || state.properties.name === 'New York') {
@@ -481,6 +510,19 @@ var draw_visualizations = function() {
         };
       });
       
+      // Calculate max delay for scaling
+      const maxDelay = d3.max(stateData, d => d.delay);
+      
+      // Create radius scale
+      const radiusScale = d3.scaleLinear()
+        .domain([0, maxDelay])
+        .range([1, 25]); // Min 1px, max 25px radius
+      
+      // Create color scale (green -> yellow -> red)
+      const colorScale = d3.scaleLinear()
+        .domain([0, maxDelay * 0.5, maxDelay])
+        .range(['#00ff00', '#ffff00', '#ff0000']); // Green -> Yellow -> Red
+      
       // Remove existing circles
       svg.selectAll('.delay-circle').remove();
       
@@ -491,8 +533,8 @@ var draw_visualizations = function() {
         .attr('class', 'delay-circle')
         .attr('cx', d => path.centroid(d)[0])
         .attr('cy', d => path.centroid(d)[1])
-        .attr('r', d => Math.max(3, Math.min(15, d.delay * 1.5))) // Scale radius based on delay
-        .attr('fill', d => d.delay > 0 ? '#ff4444' : 'transparent')
+        .attr('r', d => radiusScale(d.delay)) // Scale radius based on delay
+        .attr('fill', d => d.delay > 0 ? colorScale(d.delay) : 'transparent')
         .attr('opacity', 0.7);
       
       // Update year display
