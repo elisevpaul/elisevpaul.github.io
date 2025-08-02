@@ -1,7 +1,7 @@
 var dataset_map = {
   'main': '',
   'traffic delay': 'annual_person_hours_of_traffic_delay_per_commuter.csv',
-  'operation costs': '',
+  'operation costs': 'average_cost_of_owning_and_operating_a_vehicle.csv',
   'fuel waste': ''
 }
 
@@ -148,15 +148,246 @@ var draw_visualizations = function() {
       .style("font-weight", "bold")
       .text("Traffic Delay Trends (1982-2022)");
   }
-  // async function draw_average_cost_ownership() {
-  //   //ok this is sorta similar to draw_traffic_delay_graph.
-  //   // our x axis is still year.
-  //   // and y is current dollars.
-  //   // the fixed costs are one bar, variable cost is another.
-  //   // then there is a line for the average total cost per 15000 miles in current dollars
+  async function draw_average_cost_ownership() {
+    //ok this is sorta similar to draw_traffic_delay_graph.
+    // our x axis is still year.
+    // and y is current dollars.
+    // the fixed costs are one bar, variable cost is another.
+    // then there is a line for the average total cost per 15000 miles in current dollars
+    const data = await d3.csv("resources/datasets/" + dataset_map['operation costs']);
+    console.log('Parsed CSV data:', data);
+    console.log(data[1]);
+    // Get the specific rows by their position in the CSV
+    // Line 2 (index 1) = years header
+    // Line 8 (index 7) = total cost row
+    // Line 9 (index 8) = variable cost row  
+    // Line 10 (index 9) = fixed cost row
+    const yearsHeader = data[0]; // Line 2
+    const totalCostRow = data[5]; // Line 8
+    const variableCostRow = data[6]; // Line 9
+    const fixedCostRow = data[7]; // Line 10
     
-  // }
+    console.log('Years header:', yearsHeader);
+    console.log('Total cost row:', totalCostRow);
+    console.log('Variable cost row:', variableCostRow);
+    console.log('Fixed cost row:', fixedCostRow);
+    
+    // Get years from the header row (skip first empty column)
+    const years = Object.keys(yearsHeader).filter(key => {
+      const year = parseInt(key);
+      return !isNaN(year) && year >= 2000 && year <= 2024;
+    });
+    
+    console.log('Years:', years);
+    
+    console.log('Found rows:', {
+      totalCostRow: totalCostRow ? 'found' : 'not found',
+      variableCostRow: variableCostRow ? 'found' : 'not found', 
+      fixedCostRow: fixedCostRow ? 'found' : 'not found'
+    });
+    
+    // Check if we have valid data before proceeding
+    if (!totalCostRow || !variableCostRow || !fixedCostRow) {
+      console.error('Missing required data rows');
+      return;
+    }
+    
+    // Process the data for each year
+    const processedData = [];
+    console.log('Years array:', years);
+    console.log('Total cost row keys:', Object.keys(totalCostRow));
+    console.log('Total cost row values:', totalCostRow);
+    console.log('Variable cost row values:', variableCostRow);
+    console.log('Fixed cost row values:', fixedCostRow);
+    
+    for (let i = 0; i < years.length; i++) {
+      const year = parseInt(years[i]);
+      const yearIndex = i + 1; // Skip column 0, start at column 1
+      console.log(`Processing year ${year}, index: ${yearIndex}`);
+      
+      if (!isNaN(year) && year >= 2000 && year <= 2024) {
+        const totalCost = parseFloat(totalCostRow[year].replace(/,/g, '')) || 0;
+        const variableCost = parseFloat(variableCostRow[year].replace(/,/g, '')) || 0;
+        const fixedCost = parseFloat(fixedCostRow[year].replace(/,/g, '')) || 0;
+        
+        console.log(`Year ${year}: total=${totalCost}, variable=${variableCost}, fixed=${fixedCost}`);
+        
+        if (totalCost > 0) {
+          processedData.push({
+            year: year,
+            totalCost: totalCost,
+            variableCost: variableCost,
+            fixedCost: fixedCost
+          });
+        }
+      }
+    }
+    
+    console.log('Processed data:', processedData);
+    
+    // Check if we have valid data before proceeding
+    if (processedData.length === 0) {
+      console.error('No valid data found');
+      return;
+    }
+    
+    // Set up the SVG
+    const margin = { top: 40, right: 30, bottom: 40, left: 80 };
+    const width = 800 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+    
+    // Clear any existing SVG
+    d3.select('#slide_2 svg').remove();
+
+    const svg = d3.select('#slide_2')
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    // Set up scales
+    const xScale = d3.scaleBand()
+      .domain(processedData.filter(d => d.year >= 2000 && d.year <= 2024).map(d => d.year))
+      .range([0, width])
+      .padding(0.1);
+    
+    const yScale = d3.scaleLinear()
+      .domain([0, 14000])
+      .range([height, 0]);
+    
+    // Create color scale for the bars
+    const colorScale = d3.scaleOrdinal()
+      .domain(['fixed', 'variable'])
+      .range(['#ff7f0e', '#2ca02c']);
+    
+    // Add bars for fixed and variable costs
+    const barWidth = xScale.bandwidth() / 2;
+    
+    // Fixed cost bars
+    svg.selectAll('.fixed-bar')
+      .data(processedData)
+      .enter().append('rect')
+      .attr('class', 'fixed-bar')
+      .attr('x', d => xScale(d.year))
+      .attr('y', d => yScale(d.fixedCost))
+      .attr('width', barWidth)
+      .attr('height', d => height - yScale(d.fixedCost))
+      .attr('fill', colorScale('fixed'))
+      .attr('opacity', 0.8);
+    
+    // Variable cost bars
+    svg.selectAll('.variable-bar')
+      .data(processedData)
+      .enter().append('rect')
+      .attr('class', 'variable-bar')
+      .attr('x', d => xScale(d.year) + barWidth)
+      .attr('y', d => yScale(d.variableCost))
+      .attr('width', barWidth)
+      .attr('height', d => height - yScale(d.variableCost))
+      .attr('fill', colorScale('variable'))
+      .attr('opacity', 0.8);
+    
+    // Add line for total cost
+    const line = d3.line()
+      .x(d => xScale(d.year) + xScale.bandwidth() / 2)
+      .y(d => yScale(d.totalCost));
+    
+    svg.append("path")
+      .datum(processedData)
+      .attr("fill", "none")
+      .attr("stroke", "#d62728")
+      .attr("stroke-width", 3)
+      .attr("d", line);
+    
+    // Add dots for total cost points
+    svg.selectAll('.total-dot')
+      .data(processedData)
+      .enter().append('circle')
+      .attr('class', 'total-dot')
+      .attr('cx', d => xScale(d.year) + xScale.bandwidth() / 2)
+      .attr('cy', d => yScale(d.totalCost))
+      .attr('r', 4)
+      .attr('fill', '#d62728');
+    
+    // Add X axis
+    svg.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
+    
+    // Add Y axis
+    svg.append("g")
+      .call(d3.axisLeft(yScale).tickFormat(d => '$' + d3.format(',.0f')(d)));
+    
+    // Add axis labels
+    svg.append("text")
+      .attr("transform", `translate(${width/2}, ${height + margin.bottom - 10})`)
+      .style("text-anchor", "middle")
+      .text("Year");
+    
+    svg.append("text")
+      .attr("transform", "rotate(-90)")
+      .attr("y", 0 - margin.left)
+      .attr("x", 0 - (height / 2))
+      .attr("dy", "1em")
+      .style("text-anchor", "middle")
+      .text("Cost (Current Dollars)");
+    
+    // Add title
+    svg.append("text")
+      .attr("x", width / 2)
+      .attr("y", 0 - margin.top / 2)
+      .attr("text-anchor", "middle")
+      .style("font-size", "16px")
+      .style("font-weight", "bold")
+      .text("Average Cost of Vehicle Ownership (1975-2024)");
+    
+    // Add legend
+    const legend = svg.append("g")
+      .attr("transform", `translate(${width - 100}, 20)`);
+    
+    // Fixed cost legend
+    legend.append("rect")
+      .attr("x", 0)
+      .attr("y", 0)
+      .attr("width", 15)
+      .attr("height", 15)
+      .attr("fill", colorScale('fixed'));
+    
+    legend.append("text")
+      .attr("x", 20)
+      .attr("y", 12)
+      .text("Fixed Cost");
+    
+    // Variable cost legend
+    legend.append("rect")
+      .attr("x", 0)
+      .attr("y", 25)
+      .attr("width", 15)
+      .attr("height", 15)
+      .attr("fill", colorScale('variable'));
+    
+    legend.append("text")
+      .attr("x", 20)
+      .attr("y", 37)
+      .text("Variable Cost");
+    
+    // Total cost legend
+    legend.append("line")
+      .attr("x1", 0)
+      .attr("y1", 50)
+      .attr("x2", 15)
+      .attr("y2", 50)
+      .attr("stroke", "#d62728")
+      .attr("stroke-width", 3);
+    
+    legend.append("text")
+      .attr("x", 20)
+      .attr("y", 55)
+      .text("Total Cost");
+  }
   draw_traffic_delay_graph();
+  draw_average_cost_ownership();
 };
 
 // ANNOTATE
