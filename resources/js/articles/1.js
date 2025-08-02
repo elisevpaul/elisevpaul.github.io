@@ -406,12 +406,18 @@ var draw_visualizations = function() {
       //.attr("transform", `translate(${margin.left},${margin.top})`)
       
       ;
+      const projection = d3.geoIdentity()
+        .reflectY(false) // TopoJSON uses flipped Y-axis
+        .fitSize([width, height], topojson.feature(mapdata, mapdata.objects.states));
+
+      const path = d3.geoPath(projection);
+      
       // Create the US boundary
     const usa = svg
       .append('g')
       .append('path')
       .datum(topojson.feature(mapdata, mapdata.objects.nation))
-      .attr('d', d3.geoPath())
+      .attr('d', path)
 
     // Create the state boundaries. "stroke" and "fill" set the outline and fill
     // colors, respectively.
@@ -423,7 +429,7 @@ var draw_visualizations = function() {
       .data(topojson.feature(mapdata, mapdata.objects.states).features)
       .join('path')
       .attr('vector-effect', 'non-scaling-stroke')
-      .attr('d', d3.geoPath());
+      .attr('d', path);
       
     
     
