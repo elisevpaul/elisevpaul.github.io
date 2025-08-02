@@ -613,6 +613,7 @@ var draw_visualizations = function() {
       .style('font-size', '12px')
       .style('fill', 'white')
       .attr('class', 'play-button-text')
+      .style('pointer-events', 'none') // Make text non-interactive so clicks pass through to rect
       .text('Play');
     
     // Slider functionality
@@ -657,7 +658,7 @@ var draw_visualizations = function() {
           playInterval = setInterval(() => {
             currentYearIndex = (currentYearIndex + 1) % yearRange.length;
             updateSliderPosition();
-          }, 500); // Update every 500ms
+          }, 167); // Update every 167ms (3x faster)
         }
       })
       .on('mousedown', function(event) {
