@@ -422,11 +422,200 @@ var draw_visualizations = function() {
       .data(topojson.feature(mapdata, mapdata.objects.states).features)
       .join('path')
       .attr('vector-effect', 'non-scaling-stroke')
-      .attr('d', path)
-      ;
+      .attr('d', path);
+    
+    // Get the years from the data (columns 2 onwards are years)
+    const years = Object.keys(data[0]).filter(key => key !== 'Urban area' && key !== 'Population group');
+    const yearRange = years.map(year => parseInt(year)).filter(year => !isNaN(year));
+    
+    // Function to update the map for a specific year
+    function updateMap(year) {
+      // Debug: Log the first row to see column names
+      if (data.length > 0) {
+        console.log("First row keys:", Object.keys(data[0]));
+        console.log("Sample urban area:", data[0]['Urban area ']);
+      }
       
+      // Calculate average delay for each state for the given year
+      const stateData = topojson.feature(mapdata, mapdata.objects.states).features.map(state => {
+        // Check if state has a name property
+        console.log("CHECKING STATER");
+        console.log(state);
+        console.log(state.properties.name);
+        if (!state.properties || !state.properties.name) {
+          return {
+            ...state,
+            delay: 0
+          };
+        }
+        
+        // Find matching urban areas for this state
+        const matchingAreas = data.filter(row => 
+          row['Urban area '] && row['Urban area '].toLowerCase().includes(state.properties.name.toLowerCase())
+        );
+        
+        // Debug: Log matching areas for first few states
+        if (state.properties.name === 'California' || state.properties.name === 'Texas' || state.properties.name === 'New York') {
+          console.log(`Matching areas for ${state.properties.name}:`, matchingAreas.length);
+          if (matchingAreas.length > 0) {
+            console.log("Sample matching area:", matchingAreas[0]['Urban area ']);
+          }
+        }
+        
+        let totalDelay = 0;
+        let count = 0;
+        
+        matchingAreas.forEach(area => {
+          const delay = parseFloat(area[year]) || 0;
+          if (delay > 0) {
+            totalDelay += delay;
+            count++;
+          }
+        });
+        
+        const avgDelay = count > 0 ? totalDelay / count : 0;
+        
+        return {
+          ...state,
+          delay: avgDelay
+        };
+      });
+      
+      // Remove existing circles
+      svg.selectAll('.delay-circle').remove();
+      
+      // Add circles for delay visualization at state centroids
+      svg.selectAll('.delay-circle')
+        .data(stateData)
+        .enter().append('circle')
+        .attr('class', 'delay-circle')
+        .attr('cx', d => path.centroid(d)[0])
+        .attr('cy', d => path.centroid(d)[1])
+        .attr('r', d => Math.max(3, Math.min(15, d.delay * 1.5))) // Scale radius based on delay
+        .attr('fill', d => d.delay > 0 ? '#ff4444' : 'transparent')
+        .attr('opacity', 0.7);
+      
+      // Update year display
+      svg.selectAll('.year-display').remove();
+      svg.append('text')
+        .attr('class', 'year-display')
+        .attr('x', 400)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .style('font-size', '18px')
+        .style('font-weight', 'bold')
+        .text(`Traffic Delay - ${year}`);
+    }
     
+    // Create slider container on the right
+    const sliderContainer = svg.append('g')
+      .attr('transform', `translate(650, 50)`);
     
+    const sliderWidth = 100;
+    const sliderHeight = 20;
+    
+    // Slider track
+    sliderContainer.append('rect')
+      .attr('x', 0)
+      .attr('y', 0)
+      .attr('width', sliderWidth)
+      .attr('height', sliderHeight)
+      .attr('fill', '#ddd')
+      .attr('rx', 10);
+    
+    // Slider handle
+    const sliderHandle = sliderContainer.append('circle')
+      .attr('cx', 0)
+      .attr('cy', sliderHeight/2)
+      .attr('r', 10)
+      .attr('fill', '#666')
+      .attr('cursor', 'pointer');
+    
+    // Year labels
+    sliderContainer.append('text')
+      .attr('x', sliderWidth/2)
+      .attr('y', -10)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '12px')
+      .text('Year');
+    
+    sliderContainer.append('text')
+      .attr('x', 0)
+      .attr('y', 40)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '10px')
+      .text(yearRange[0]);
+    
+    sliderContainer.append('text')
+      .attr('x', sliderWidth)
+      .attr('y', 40)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '10px')
+      .text(yearRange[yearRange.length - 1]);
+    
+    // Play button
+    const playButton = sliderContainer.append('rect')
+      .attr('x', 0)
+      .attr('y', 60)
+      .attr('width', 40)
+      .attr('height', 20)
+      .attr('fill', '#4CAF50')
+      .attr('rx', 5)
+      .attr('cursor', 'pointer');
+    
+    sliderContainer.append('text')
+      .attr('x', 20)
+      .attr('y', 75)
+      .attr('text-anchor', 'middle')
+      .style('font-size', '12px')
+      .style('fill', 'white')
+      .text('Play');
+    
+    // Slider functionality
+    let currentYearIndex = 0;
+    let isPlaying = false;
+    let playInterval;
+    
+    function updateSliderPosition() {
+      const x = (currentYearIndex / (yearRange.length - 1)) * sliderWidth;
+      sliderHandle.attr('cx', x);
+      updateMap(yearRange[currentYearIndex]);
+    }
+    
+    // Slider drag behavior
+    const drag = d3.drag()
+      .on('drag', function(event) {
+        const x = Math.max(0, Math.min(sliderWidth, event.x));
+        const index = Math.round((x / sliderWidth) * (yearRange.length - 1));
+        currentYearIndex = index;
+        updateSliderPosition();
+      });
+    
+    sliderHandle.call(drag);
+    
+    // Play button functionality
+    playButton.on('click', function() {
+      if (isPlaying) {
+        // Stop playing
+        isPlaying = false;
+        clearInterval(playInterval);
+        playButton.attr('fill', '#4CAF50');
+        d3.select(this.parentNode).select('text').text('Play');
+      } else {
+        // Start playing
+        isPlaying = true;
+        playButton.attr('fill', '#f44336');
+        d3.select(this.parentNode).select('text').text('Stop');
+        
+        playInterval = setInterval(() => {
+          currentYearIndex = (currentYearIndex + 1) % yearRange.length;
+          updateSliderPosition();
+        }, 500); // Update every 500ms
+      }
+    });
+    
+    // Initialize with first year
+    updateSliderPosition();
   }
   draw_traffic_delay_graph();
   draw_average_cost_ownership();
