@@ -386,8 +386,51 @@ var draw_visualizations = function() {
       .attr("y", 55)
       .text("Total Cost");
   }
+  async function draw_traffic_delay_state_map() {
+    //setup map json
+    //https://billmill.org/making_a_us_map.html
+    const res = await fetch(`https://cdn.jsdelivr.net/npm/us-atlas@3/states-albers-10m.json`)
+    const mapdata = await res.json()
+   
+    const data = await d3.csv("resources/datasets/" + dataset_map['traffic delay']);
+    // Set up the SVG
+    const margin = { top: 40, right: 30, bottom: 40, left: 60 };
+    const width = 800 - margin.left - margin.right;
+    const height = 400 - margin.top - margin.bottom;
+    
+    const svg = d3.select("#slide_3")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      //.attr("transform", `translate(${margin.left},${margin.top})`)
+      
+      ;
+      // Create the US boundary
+    const usa = svg
+      .append('g')
+      .append('path')
+      .datum(topojson.feature(mapdata, mapdata.objects.nation))
+      .attr('d', d3.geoPath())
+
+    // Create the state boundaries. "stroke" and "fill" set the outline and fill
+    // colors, respectively.
+    const state = svg
+      .append('g')
+      .attr('stroke', '#444')
+      .attr('fill', '#eee')
+      .selectAll('path')
+      .data(topojson.feature(mapdata, mapdata.objects.states).features)
+      .join('path')
+      .attr('vector-effect', 'non-scaling-stroke')
+      .attr('d', d3.geoPath());
+      
+    
+    
+  }
   draw_traffic_delay_graph();
   draw_average_cost_ownership();
+  draw_traffic_delay_state_map();
 };
 
 // ANNOTATE
