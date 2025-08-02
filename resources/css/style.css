@@ -52,3 +52,6 @@ article {
     align-items: center;
     justify-content: center;
 }
+.active_button {
+    background-color: #00ffff;
+}
