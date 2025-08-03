@@ -417,7 +417,7 @@ var draw_visualizations = function() {
     
     // Add legend
     const legend = svg.append("g")
-      .attr("transform", `translate(${width - 100}, 20)`);
+      .attr("transform", `translate(20, 20)`);
     
     // Fixed cost legend
     legend.append("rect")
