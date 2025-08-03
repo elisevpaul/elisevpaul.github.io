@@ -525,6 +525,15 @@ var draw_visualizations = function() {
       d3.select(this).select("text")
         .style("fill", activeElements.total ? "black" : "#999");
     });
+    
+    // Add instruction text below legend
+    legend.append("text")
+      .attr("x", 0)
+      .attr("y", 85)
+      .style("font-size", "10px")
+      .style("fill", "#666")
+      .style("font-style", "italic")
+      .text("Click legend items to toggle visibility");
   }
   async function draw_traffic_delay_state_map() {
     //setup map json
