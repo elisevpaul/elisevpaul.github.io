@@ -157,6 +157,69 @@ var draw_visualizations = function() {
       .style("font-size", "16px")
       .style("font-weight", "bold")
       .text("Traffic Delay Trends (2000-2022)");
+    
+    // Add COVID-19 annotation at year 2020
+    const covidYear = 2020;
+    const covidDataPoint = yearlyAverages.find(d => d.year === covidYear);
+    
+    if (covidDataPoint) {
+      // Create annotation group
+      const annotationGroup = svg.append("g")
+        .attr("class", "covid-annotation");
+      
+      // Add annotation line
+      annotationGroup.append("line")
+        .attr("x1", xScale(covidYear))
+        .attr("y1", yScale(covidDataPoint.average))
+        .attr("x2", xScale(covidYear) - 80)
+        .attr("y2", yScale(covidDataPoint.average) - 40)
+        .attr("stroke", "#ff4444")
+        .attr("stroke-width", 2)
+        .attr("stroke-dasharray", "5,5");
+      
+      // Add annotation text
+      annotationGroup.append("text")
+        .attr("x", xScale(covidYear) - 85)
+        .attr("y", yScale(covidDataPoint.average) - 45)
+        .attr("text-anchor", "end")
+        .style("font-size", "12px")
+        .style("font-weight", "bold")
+        .style("fill", "#ff4444")
+        .text("COVID-19 Impact:");
+      
+      annotationGroup.append("text")
+        .attr("x", xScale(covidYear) - 85)
+        .attr("y", yScale(covidDataPoint.average) - 30)
+        .attr("text-anchor", "end")
+        .style("font-size", "11px")
+        .style("fill", "#ff4444")
+        .text("Social distancing");
+      
+      annotationGroup.append("text")
+        .attr("x", xScale(covidYear) - 85)
+        .attr("y", yScale(covidDataPoint.average) - 15)
+        .attr("text-anchor", "end")
+        .style("font-size", "11px")
+        .style("fill", "#ff4444")
+        .text("reduced traffic");
+      
+      annotationGroup.append("text")
+        .attr("x", xScale(covidYear) - 85)
+        .attr("y", yScale(covidDataPoint.average))
+        .attr("text-anchor", "end")
+        .style("font-size", "11px")
+        .style("fill", "#ff4444")
+        .text("congestion");
+      
+      // Add a small circle at the data point to highlight it
+      annotationGroup.append("circle")
+        .attr("cx", xScale(covidYear))
+        .attr("cy", yScale(covidDataPoint.average))
+        .attr("r", 6)
+        .attr("fill", "none")
+        .attr("stroke", "#ff4444")
+        .attr("stroke-width", 2);
+    }
   }
   async function draw_average_cost_ownership() {
     //ok this is sorta similar to draw_traffic_delay_graph.
