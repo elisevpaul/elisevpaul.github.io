@@ -58,14 +58,23 @@ var draw_visualizations = function() {
     // Get the years from the data (columns 2 onwards are years)
     const years = Object.keys(data[0]).filter(key => key !== 'Urban area' && key !== 'Population group');
     
+    // Filter years to only include 2000-2022
+    const filteredYears = years.filter(year => {
+      const yearInt = parseInt(year);
+      return !isNaN(yearInt) && yearInt >= 2000 && yearInt <= 2022;
+    });
+    
     // Calculate average for each year across all urban areas
-    const yearlyAverages = years.map(year => {
+    const yearlyAverages = filteredYears.map(year => {
       const values = data
         .filter(row => row[year] !== undefined && row[year] !== '')
-        .map(row => parseFloat(row[year]));
-      const average = values.reduce((sum, val) => sum + val, 0) / values.length;
+        .map(row => parseFloat(row[year]))
+        .filter(val => !isNaN(val)); // Filter out NaN values
+      const average = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : null;
       return { year: parseInt(year), average: average };
-    });
+    })
+    .filter(d => d.average !== null && !isNaN(d.average)) // Remove years with no valid data
+    .sort((a, b) => a.year - b.year); // Sort by year to ensure proper line connection
     
     console.log('Yearly averages:', yearlyAverages);
     
@@ -90,7 +99,7 @@ var draw_visualizations = function() {
       .range([0, width]);
     
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(yearlyAverages, d => d.average)])
+      .domain([0, 90])
       .range([height, 0]);
     
     // Add the line
@@ -98,15 +107,7 @@ var draw_visualizations = function() {
       .x(d => xScale(d.year))
       .y(d => yScale(d.average));
     
-    // Add the line path
-    svg.append("path")
-      .datum(yearlyAverages)
-      .attr("fill", "none")
-      .attr("stroke", "steelblue")
-      .attr("stroke-width", 3)
-      .attr("d", line);
-    
-    // Add dots for each data point
+    // Add dots for each data point first
     svg.selectAll(".dot")
       .data(yearlyAverages)
       .enter().append("circle")
@@ -115,6 +116,15 @@ var draw_visualizations = function() {
       .attr("cy", d => yScale(d.average))
       .attr("r", 4)
       .attr("fill", "steelblue");
+    
+    // Add the line path after dots (so line appears behind dots)
+    svg.append("path")
+      .datum(yearlyAverages)
+      .attr("fill", "none")
+      .attr("stroke", "steelblue")
+      .attr("stroke-width", 3)
+      .attr("d", line)
+      .style("pointer-events", "none"); // Ensure line doesn't interfere with interactions
     
     // Add X axis
     svg.append("g")
@@ -146,7 +156,7 @@ var draw_visualizations = function() {
       .attr("text-anchor", "middle")
       .style("font-size", "16px")
       .style("font-weight", "bold")
-      .text("Traffic Delay Trends (1982-2022)");
+      .text("Traffic Delay Trends (2000-2022)");
   }
   async function draw_average_cost_ownership() {
     //ok this is sorta similar to draw_traffic_delay_graph.
