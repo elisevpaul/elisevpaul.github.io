@@ -763,7 +763,7 @@ var add_annotations = function() {
 
 
 var load_page = function() {
-  show_slide(0 );
+  show_slide(1 );
   draw_visualizations();
   add_annotations();
   init_event_triggers();
