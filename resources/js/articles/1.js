@@ -371,7 +371,8 @@ var draw_visualizations = function() {
       .attr("fill", "none")
       .attr("stroke", "#d62728")
       .attr("stroke-width", 3)
-      .attr("d", line);
+      .attr("d", line)
+      .attr('class', 'total-line');
     
     // Add dots for total cost points
     svg.selectAll('.total-dot')
@@ -415,49 +416,115 @@ var draw_visualizations = function() {
       .style("font-weight", "bold")
       .text("Average Cost of Vehicle Ownership (1975-2024)");
     
-    // Add legend
+    // Add interactive legend
     const legend = svg.append("g")
       .attr("transform", `translate(20, 20)`);
     
+    // State tracking for legend interactions
+    let activeElements = {
+      fixed: true,
+      variable: true,
+      total: true
+    };
+    
+    // Function to update visibility
+    function updateVisibility() {
+      svg.selectAll('.fixed-bar')
+        .style('opacity', activeElements.fixed ? 0.8 : 0.2);
+      
+      svg.selectAll('.variable-bar')
+        .style('opacity', activeElements.variable ? 0.8 : 0.2);
+      
+      svg.selectAll('.total-line')
+        .style('opacity', activeElements.total ? 1 : 0.2);
+      
+      svg.selectAll('.total-dot')
+        .style('opacity', activeElements.total ? 1 : 0.2);
+    }
+    
     // Fixed cost legend
-    legend.append("rect")
+    const fixedLegendGroup = legend.append("g")
+      .attr("class", "legend-item")
+      .style("cursor", "pointer");
+    
+    fixedLegendGroup.append("rect")
       .attr("x", 0)
       .attr("y", 0)
       .attr("width", 15)
       .attr("height", 15)
       .attr("fill", colorScale('fixed'));
     
-    legend.append("text")
+    fixedLegendGroup.append("text")
       .attr("x", 20)
       .attr("y", 12)
       .text("Fixed Cost");
     
+    fixedLegendGroup.on("click", function() {
+      activeElements.fixed = !activeElements.fixed;
+      updateVisibility();
+      // Update legend appearance
+      d3.select(this).select("rect")
+        .attr("fill", activeElements.fixed ? colorScale('fixed') : "#ccc");
+      d3.select(this).select("text")
+        .style("fill", activeElements.fixed ? "black" : "#999");
+    });
+    
     // Variable cost legend
-    legend.append("rect")
+    const variableLegendGroup = legend.append("g")
+      .attr("class", "legend-item")
+      .attr("transform", "translate(0, 25)")
+      .style("cursor", "pointer");
+    
+    variableLegendGroup.append("rect")
       .attr("x", 0)
-      .attr("y", 25)
+      .attr("y", 0)
       .attr("width", 15)
       .attr("height", 15)
       .attr("fill", colorScale('variable'));
     
-    legend.append("text")
+    variableLegendGroup.append("text")
       .attr("x", 20)
-      .attr("y", 37)
+      .attr("y", 12)
       .text("Variable Cost");
     
+    variableLegendGroup.on("click", function() {
+      activeElements.variable = !activeElements.variable;
+      updateVisibility();
+      // Update legend appearance
+      d3.select(this).select("rect")
+        .attr("fill", activeElements.variable ? colorScale('variable') : "#ccc");
+      d3.select(this).select("text")
+        .style("fill", activeElements.variable ? "black" : "#999");
+    });
+    
     // Total cost legend
-    legend.append("line")
+    const totalLegendGroup = legend.append("g")
+      .attr("class", "legend-item")
+      .attr("transform", "translate(0, 50)")
+      .style("cursor", "pointer");
+    
+    totalLegendGroup.append("line")
       .attr("x1", 0)
-      .attr("y1", 50)
+      .attr("y1", 7)
       .attr("x2", 15)
-      .attr("y2", 50)
+      .attr("y2", 7)
       .attr("stroke", "#d62728")
       .attr("stroke-width", 3);
     
-    legend.append("text")
+    totalLegendGroup.append("text")
       .attr("x", 20)
-      .attr("y", 55)
+      .attr("y", 12)
       .text("Total Cost");
+    
+    totalLegendGroup.on("click", function() {
+      activeElements.total = !activeElements.total;
+      updateVisibility();
+      // Update legend appearance
+      d3.select(this).select("line")
+        .attr("stroke", activeElements.total ? "#d62728" : "#ccc");
+      d3.select(this).select("text")
+        .style("fill", activeElements.total ? "black" : "#999");
+    });
   }
   async function draw_traffic_delay_state_map() {
     //setup map json
